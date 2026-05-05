@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-"""
-main.py — backwards-compatible entry point.
-
-The project code was refactored into the `app/` package. This file exists so
-older commands like `streamlit run main.py` still work.
-"""
+# main.py — backwards-compatible entry point.
+#
+# Streamlit renders top-level string literals, so we use comments (not a docstring).
+# This file forwards to the real app entry point in `app/main.py`.
 
 from app.main import main
 
