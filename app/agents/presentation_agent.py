@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-# presentation_agent.py — chooses a chart/table and generates Streamlit+Plotly code to render it.
+# app/agents/presentation_agent.py — chooses a chart/table and generates Streamlit+Plotly code to render it.
 
 import json
 import re
 from datetime import datetime
-from typing import Any, List, Optional, Sequence, Tuple, TypedDict
+from typing import Any, TypedDict
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import GOOGLE_API_KEY, OLLAMA_MODEL
+from app.config import GOOGLE_API_KEY, OLLAMA_MODEL
 
 
 class AgentState(TypedDict, total=False):
@@ -42,12 +42,24 @@ def _is_date_like(value: Any) -> bool:
     if not s:
         return False
     # Common SQLite-ish date/time formats
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+    formats: list[tuple[str, int]] = [
+        ("%Y-%m-%d", 10),
+        ("%Y/%m/%d", 10),
+        ("%Y-%m-%d %H:%M:%S", 19),
+        ("%Y-%m-%dT%H:%M:%S", 19),
+    ]
+    for fmt, width in formats:
         try:
-            datetime.strptime(s[: len(fmt)], fmt)
+            # Try the full string first (best case).
+            datetime.strptime(s, fmt)
             return True
         except ValueError:
-            continue
+            # If the value includes extra precision (like milliseconds), try a prefix.
+            try:
+                datetime.strptime(s[:width], fmt)
+                return True
+            except ValueError:
+                continue
     return False
 
 
@@ -188,11 +200,6 @@ def format_presentation(state: AgentState, *, model: str = OLLAMA_MODEL) -> Agen
     """
     Decide on a visualization format and generate Streamlit/Plotly code to render it.
 
-    - Honors explicit user request (e.g., "bar chart") when present in state['query'].
-    - Otherwise infers from state['sql_results']:
-      - time series (date-like x + numeric y) -> line_chart
-      - category/value (text x + numeric y) -> bar_chart
-      - otherwise -> table
     Saves snippet in state['viz_code'].
     """
     chart_type = _choose_format(state)

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-# data_critic_agent.py — checks whether SQL results actually answer the user's question.
+# app/agents/data_critic_agent.py — checks whether SQL results actually answer the user's question.
 
 import json
-from typing import Any, List, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import GOOGLE_API_KEY, OLLAMA_MODEL
+from app.config import GOOGLE_API_KEY, OLLAMA_MODEL
 
 
 class AgentState(TypedDict, total=False):

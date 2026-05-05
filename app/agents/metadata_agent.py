@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-# metadata_agent.py — reads the SQLite database and returns its table schema.
+# app/agents/metadata_agent.py — reads the SQLite database and returns its table schema.
 
 import sqlite3
 from typing import Any, Dict, List, TypedDict
 
-from config import SALES_DB_PATH
+from app.config import SALES_DB_PATH
 
 
 class AgentState(TypedDict, total=False):
@@ -18,10 +18,9 @@ def get_schema(state: AgentState) -> AgentState:
     """
     Populate state['schema'] with the SQLite database schema.
 
-    Reads from sales.db and extracts all user table names along with their full
+    Reads from the configured SQLite database and extracts table names plus their
     CREATE TABLE statements from sqlite_master.
     """
-
     db_path = SALES_DB_PATH
 
     if not db_path.exists():
@@ -65,3 +64,4 @@ def get_schema(state: AgentState) -> AgentState:
             "tables": [],
         }
         return state
+

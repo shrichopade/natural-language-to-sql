@@ -9,9 +9,9 @@ Ask questions in plain English and get:
 
 ## What’s inside
 
-- **App UI**: `main.py` (Streamlit)
-- **Pipeline orchestrator**: `orchestrator.py`
-- **Pipeline steps (“agents”)**: `agents/`
+- **App UI**: `app/main.py` (Streamlit)
+- **Pipeline orchestrator**: `app/orchestrator.py`
+- **Pipeline steps (“agents”)**: `app/agents/`
 - **Database schema**: `database/schema.sql`
 - **Docs**
   - `SOLUTION_DESIGN.md`
@@ -65,10 +65,13 @@ python .\database\seed_data.py
 Start Streamlit:
 
 ```bash
-streamlit run .\main.py
+streamlit run .\app\main.py
 ```
 
 Then open the local URL Streamlit prints in your terminal.
+
+Compatibility note:
+- You can also run `streamlit run .\main.py` (it forwards to `app/main.py`).
 
 ## Example questions to try
 

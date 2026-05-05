@@ -25,15 +25,17 @@ The UI calls a single orchestrator function. The orchestrator runs small “agen
 ### Components and responsibilities
 
 - **UI (Streamlit)**: login, question input, and results rendering  
-  - Main file: `main.py`
+  - Main file: `app/main.py`
 - **Orchestrator**: runs pipeline steps and handles retry logic  
-  - Main file: `orchestrator.py`
+  - Main file: `app/orchestrator.py`
 - **Agents**: small steps that each read and write fields on the shared state dict  
-  - Main folder: `agents/`
+  - Main folder: `app/agents/`
 - **Database**: local SQLite file plus schema definitions  
   - Files: `sales.db`, `database/schema.sql`
 - **Configuration**: loads environment variables and config constants  
-  - File: `config.py`
+  - File: `app/config.py`
+
+Note: the repo also includes root-level `main.py`, `orchestrator.py`, and `config.py` as small compatibility wrappers so older commands/imports still work.
 
 ## End-to-end data flow
 
@@ -125,7 +127,7 @@ Model used by the agents:
 
 - `gemini-2.5-flash`
 
-Note: the project loads `.env` early in `config.py` so agent modules can access the key when they are imported.
+Note: the project loads `.env` early in `app/config.py` so agent modules can access the key when they are imported.
 
 ## Operational concerns
 

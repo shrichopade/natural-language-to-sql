@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-# guardrail_agent.py — safety check: blocks dangerous SQL and runs safe SELECT queries.
+# app/agents/guardrail_agent.py — safety check: blocks dangerous SQL and runs safe SELECT queries.
 
 import re
 import sqlite3
-from typing import Any, List, Optional, TypedDict
+from typing import Any, TypedDict
 
-from config import SALES_DB_PATH
+from app.config import SALES_DB_PATH
 
 
 class AgentState(TypedDict, total=False):
@@ -54,3 +54,4 @@ def validate_and_execute(state: AgentState) -> AgentState:
         state["error"] = str(e)
         state["sql_results"] = []
         return state
+

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# sql_generator_agent.py — turns a user question + schema into a SQLite SELECT query.
+# app/agents/sql_generator_agent.py — turns a user question + schema into a SQLite SELECT query.
 
 import re
 from typing import Any, Optional, TypedDict
@@ -8,7 +8,7 @@ from typing import Any, Optional, TypedDict
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import GOOGLE_API_KEY, OLLAMA_MODEL
+from app.config import GOOGLE_API_KEY, OLLAMA_MODEL
 
 
 class AgentState(TypedDict, total=False):
@@ -166,3 +166,4 @@ def generate_sql(state: AgentState, *, model: str = OLLAMA_MODEL) -> AgentState:
         state["sql_query"] = ""
         state["sql_error"] = str(e)
         return state
+
