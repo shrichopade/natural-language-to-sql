@@ -1,0 +1,166 @@
+---
+description: Project context for Natural Language → SQL, including database tables and common join paths
+alwaysApply: true
+---
+
+# PROJECT CONTEXT — Natural Language → SQL (Sales Database)
+
+This project lets a user ask a question in plain English, turns it into a **SQLite SELECT query**, runs it safely, then shows results as a short summary and a chart/table.
+
+## 1) Where the data lives
+
+- **Database file**: `sales.db` (SQLite)
+- **Schema source of truth**: `database/schema.sql`
+- **Important safety rule**: only **SELECT** queries are allowed. SQL words like `DELETE`, `DROP`, `UPDATE`, etc. are blocked.
+
+## 2) Tables (what each table is for)
+
+Use these descriptions when you write SQL, join tables, or explain results.
+
+### Core sales tables
+
+- **`orders`**: one row per order (who bought, who sold, date, shipping cost).
+- **`order_details`**: the items inside an order (product, quantity, price, discount).  
+  Think: “order line items”.
+- **`products`**: product catalog (name, category, supplier, price, stock).
+- **`customers`**: customer companies and contact info.
+- **`employees`**: sales employees (who sold the order) and their territory.
+- **`shippers`**: shipping companies used by orders.
+
+### Geography (region / territory)
+
+- **`regions`**: high-level region names (e.g., North America, Europe).
+- **`territories`**: specific areas inside a region (linked to `regions`).
+
+### Extra / supporting tables (not always needed)
+
+- **`categories`**: product categories (Electronics, Furniture, etc.).
+- **`suppliers`**: product suppliers (company + country).
+- **`inventory_logs`**: inventory changes over time for products.
+- **`customer_demographics`**: extra customer traits (income bracket, age group).
+- **`product_reviews`**: product rating + short comment.
+- **`marketing_campaigns`**: marketing campaigns (name, budget, start date).
+- **`sales_targets`**: yearly sales targets per employee.
+
+## 3) Key columns per table (quick reference)
+
+This is not “every column”, just the ones that matter most for queries.
+
+- **`orders`**: `order_id`, `cust_id`, `emp_id`, `order_date`, `shipper_id`, `freight`
+- **`order_details`**: `order_id`, `prod_id`, `unit_price`, `quantity`, `discount`
+- **`products`**: `prod_id`, `prod_name`, `cat_id`, `supplier_id`, `unit_price`, `stock_level`
+- **`customers`**: `cust_id`, `company_name`, `city`, `country`
+- **`employees`**: `emp_id`, `first_name`, `last_name`, `title`, `territory_id`
+- **`territories`**: `territory_id`, `territory_name`, `region_id`
+- **`regions`**: `region_id`, `region_name`
+
+## 4) Relationships (how tables connect)
+
+These are the join rules you should follow.
+
+- **Order → Order items**: `orders.order_id = order_details.order_id`
+- **Order item → Product**: `order_details.prod_id = products.prod_id`
+- **Order → Customer**: `orders.cust_id = customers.cust_id`
+- **Order → Employee**: `orders.emp_id = employees.emp_id`
+- **Employee → Territory**: `employees.territory_id = territories.territory_id`
+- **Territory → Region**: `territories.region_id = regions.region_id`
+- **Order → Shipper**: `orders.shipper_id = shippers.shipper_id`
+- **Product → Category**: `products.cat_id = categories.cat_id`
+- **Product → Supplier**: `products.supplier_id = suppliers.supplier_id`
+
+## 5) Common “join paths” (how to answer typical questions)
+
+- **Total sales by month**:
+  - `orders` → `order_details`
+  - group by `strftime('%Y-%m', orders.order_date)`
+- **Sales by product/category**:
+  - `orders` → `order_details` → `products` → `categories`
+- **Sales by customer/country/city**:
+  - `orders` → `customers` (and also `order_details` for totals)
+- **Sales by employee**:
+  - `orders` → `employees` (and `order_details` for totals)
+- **Sales by region**:
+  - `orders` → `employees` → `territories` → `regions` (and `order_details` for totals)
+
+## 6) Keyword → tables/joins (fast “what should I use?” guide)
+
+Use this when the user asks a question and you need to quickly pick the right tables.
+
+- **“sales”, “revenue”, “total sales”, “orders”**:
+  - start with `orders` + `order_details`
+  - use the “total_sales” formula in section 7
+- **“customer”, “clients”, “country”, “city”**:
+  - `orders` → `customers` (+ `order_details` for totals)
+- **“employee”, “sales rep”, “salesperson”**:
+  - `orders` → `employees` (+ `order_details` for totals)
+- **“region”, “territory”, “North America”, “Europe”**:
+  - `orders` → `employees` → `territories` → `regions` (+ `order_details` for totals)
+- **“product”, “item”, “SKU”**:
+  - `order_details` → `products` (+ `orders` when you need dates)
+- **“category”**:
+  - `products` → `categories` (+ `order_details`/`orders` for sales numbers)
+- **“supplier”, “vendor”**:
+  - `products` → `suppliers` (+ `order_details`/`orders` for sales numbers)
+- **“inventory”, “stock”, “stock level”**:
+  - `products.stock_level`
+  - optionally `inventory_logs` for changes over time
+- **“review”, “rating”, “comment”**:
+  - `products` → `product_reviews`
+- **“campaign”, “marketing”, “budget”**:
+  - `marketing_campaigns`
+- **“target”, “quota”, “goal”**:
+  - `sales_targets` (join to `employees` if you need names)
+
+## 7) Business definition: “total sales”
+
+When the question asks for “total sales”, use this formula:
+
+**total_sales = SUM(order_details.unit_price * order_details.quantity * (1 - COALESCE(order_details.discount, 0)))**
+
+Notes:
+- `discount` is a fraction like `0.05` (5%).
+- `COALESCE(..., 0)` treats missing discounts as 0%.
+
+## 8) Time windows (how to interpret “last year”, “last 6 months”)
+
+Use SQLite date functions:
+
+- **Last year**: `date(orders.order_date) >= date('now', '-1 year')`
+- **Last 6 months**: `date(orders.order_date) >= date('now', '-6 months')`
+
+## 9) Copy/paste SQL examples (known-good)
+
+### A) Total sales by month (last year)
+
+```sql
+SELECT
+  strftime('%Y-%m', o.order_date) AS month,
+  ROUND(SUM(od.unit_price * od.quantity * (1 - COALESCE(od.discount, 0))), 2) AS total_sales
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+WHERE date(o.order_date) >= date('now', '-1 year')
+GROUP BY 1
+ORDER BY 1;
+```
+
+### B) Total sales by region (last 6 months)
+
+```sql
+SELECT
+  r.region_name AS region,
+  ROUND(SUM(od.unit_price * od.quantity * (1 - COALESCE(od.discount, 0))), 2) AS total_sales
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+JOIN employees e ON e.emp_id = o.emp_id
+JOIN territories t ON t.territory_id = e.territory_id
+JOIN regions r ON r.region_id = t.region_id
+WHERE date(o.order_date) >= date('now', '-6 months')
+GROUP BY 1
+ORDER BY total_sales DESC;
+```
+
+## 10) Guardrails (important constraints)
+
+- Only generate **one** SQL query.
+- Output **raw SQL only** (no markdown, no explanation) when acting as the SQL generator.
+- Never use mutating SQL (`INSERT`, `UPDATE`, `DELETE`, `DROP`, etc.).

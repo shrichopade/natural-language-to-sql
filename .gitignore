@@ -1,0 +1,11 @@
+.env
+
+# Local virtual environment (never commit)
+.venv/
+
+# Python cache files (generated)
+__pycache__/
+*.pyc
+
+# Local databases (generated at runtime / seeded locally)
+*.db
